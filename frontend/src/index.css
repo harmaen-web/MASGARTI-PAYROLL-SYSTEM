@@ -1,0 +1,315 @@
+@import './styles/themes.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', system-ui, sans-serif;
+  background: var(--bg-surface);
+  color: var(--text-primary);
+}
+
+.dark body {
+  background-color: var(--bg-surface);
+  background-image:
+    radial-gradient(ellipse 80% 50% at 10% -10%, rgba(96, 165, 250, 0.12) 0%, transparent 55%),
+    radial-gradient(ellipse 60% 40% at 95% 105%, rgba(232, 121, 249, 0.1) 0%, transparent 50%);
+}
+
+#root {
+  min-height: 100vh;
+}
+
+@layer components {
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 10px;
+    background: var(--accent);
+    padding: 0.75rem 1.25rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: white;
+    transition: opacity 0.2s;
+  }
+
+  .btn-primary:hover {
+    opacity: 0.9;
+  }
+
+  .btn-primary:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+
+  .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-card);
+    padding: 0.75rem 1.25rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    transition: background-color 0.2s;
+  }
+
+  .btn-secondary:hover {
+    background: var(--bg-elevated);
+  }
+
+  .input-field {
+    width: 100%;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-card);
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+    color: var(--text-primary);
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  .input-field:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--focus-ring);
+  }
+
+  .card {
+    border-radius: 1rem;
+    border: 1px solid var(--border-color);
+    background: var(--bg-card);
+    padding: 1.5rem;
+  }
+
+  .overlay-backdrop {
+    background: var(--overlay);
+  }
+
+  .app-shell {
+    background-color: var(--bg-surface);
+    color: var(--text-primary);
+  }
+
+  .app-sidebar {
+    background-color: var(--bg-sidebar);
+  }
+
+  .app-card {
+    background-color: var(--bg-card);
+  }
+
+  .app-elevated {
+    background-color: var(--bg-elevated);
+  }
+
+  .hover-app-elevated:hover {
+    background-color: var(--bg-elevated);
+  }
+
+  .nav-link-active {
+    background: var(--nav-active-bg);
+    color: var(--text-primary);
+    font-weight: 600;
+  }
+
+  .neon-stat {
+    color: var(--text-primary);
+  }
+
+  .neon-label {
+    color: var(--text-secondary);
+  }
+
+  .neon-link {
+    color: var(--brand-magenta);
+    font-weight: 600;
+  }
+
+  .neon-badge-paid {
+    box-shadow: var(--glow-green);
+  }
+
+  .neon-badge-processed {
+    box-shadow: var(--glow-blue);
+  }
+
+  .neon-badge-pending {
+    box-shadow: var(--glow-yellow);
+  }
+
+  .neon-badge-active {
+    box-shadow: var(--glow-green);
+  }
+}
+
+/* Dark mode: neon visibility & lighting */
+.dark h1,
+.dark h2,
+.dark h3 {
+  color: var(--text-primary);
+  text-shadow: var(--glow-text);
+}
+
+.dark label span,
+.dark .neon-label {
+  color: var(--text-secondary);
+}
+
+.dark .card {
+  box-shadow: var(--glow-card);
+  border-color: var(--card-border-accent);
+}
+
+.dark .neon-stat {
+  color: #ffffff;
+  text-shadow: 0 0 22px rgba(96, 165, 250, 0.65);
+}
+
+.dark .btn-primary {
+  color: #ffffff;
+  box-shadow: var(--glow-blue);
+  border: 1px solid rgba(96, 165, 250, 0.35);
+}
+
+.dark .btn-primary:hover {
+  box-shadow: 0 0 28px rgba(96, 165, 250, 0.7);
+}
+
+.dark .btn-secondary {
+  color: var(--text-primary);
+  border-color: rgba(96, 165, 250, 0.35);
+}
+
+.dark .btn-secondary:hover {
+  color: var(--accent-blue);
+  box-shadow: 0 0 16px rgba(96, 165, 250, 0.25);
+  border-color: rgba(96, 165, 250, 0.5);
+}
+
+.dark .input-field {
+  color: var(--text-primary);
+  background: var(--bg-elevated);
+  border-color: var(--border-color);
+}
+
+.dark .input-field::placeholder {
+  color: var(--text-muted);
+}
+
+.dark .input-field:focus {
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.2), var(--glow-blue);
+}
+
+.dark .nav-link-active {
+  color: var(--accent-blue);
+  text-shadow: var(--glow-blue);
+  border: 1px solid rgba(96, 165, 250, 0.28);
+  box-shadow: inset 0 0 18px rgba(96, 165, 250, 0.1);
+}
+
+.dark nav a:not(.nav-link-active) {
+  color: var(--text-secondary);
+}
+
+.dark nav a:not(.nav-link-active):hover {
+  color: var(--text-primary);
+}
+
+.dark table thead {
+  color: var(--accent-blue) !important;
+  text-shadow: 0 0 10px rgba(96, 165, 250, 0.35);
+}
+
+.dark table tbody td {
+  color: var(--text-primary);
+}
+
+.dark table tbody td.text-text-secondary {
+  color: var(--text-secondary) !important;
+}
+
+.dark .neon-link,
+.dark a.text-brand-magenta {
+  color: var(--brand-magenta);
+  text-shadow: var(--glow-purple);
+}
+
+.dark .neon-link:hover,
+.dark a.text-brand-magenta:hover {
+  color: #f5d0fe;
+}
+
+.dark .text-brand-magenta {
+  text-shadow: var(--glow-purple);
+}
+
+.dark aside .text-text-muted {
+  color: var(--text-muted);
+}
+
+.dark .border-t.border-border + *,
+.dark aside .border-t {
+  border-color: rgba(96, 165, 250, 0.15);
+}
+
+.dark .card [class*='text-accent-'],
+.dark .card .text-brand-magenta {
+  filter: drop-shadow(0 0 6px currentColor);
+}
+
+.dark select option {
+  background: #161b1e;
+  color: #f8fafc;
+}
+
+.dark .text-text-muted {
+  color: var(--text-muted) !important;
+}
+
+.dark .text-text-secondary {
+  color: var(--text-secondary) !important;
+}
+
+.dark .text-text-primary {
+  color: var(--text-primary) !important;
+}
+
+.dark [class*='neon-badge-'] {
+  text-shadow: 0 0 10px currentColor;
+  border: 1px solid currentColor;
+}
+
+.dark aside .font-bold {
+  text-shadow: 0 0 12px rgba(240, 171, 252, 0.35);
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  body {
+    background: white;
+    color: #0f172a;
+  }
+
+  .payslip-document {
+    box-shadow: none !important;
+    border: 1px solid #e2e8f0 !important;
+    background: white !important;
+    color: #0f172a !important;
+  }
+}
