@@ -46,9 +46,7 @@ npm run dev
 
 Backend runs at `http://localhost:5000`
 
-Default admin credentials:
-- Email: `admin@masgarti.com`
-- Password: `admin123`
+Create a local `.env` from `.env.example`, then run `npm run seed:admin` to create the first administrator. Do not commit `.env` or share secrets.
 
 ### 2. Frontend
 
@@ -120,19 +118,113 @@ Currency selection is display-only. Salary values are not converted between curr
 
 ## Mobile Build (Capacitor)
 
-Capacitor config is included, but native projects are not generated in this repo.
+The project includes a Capacitor wrapper at the repository root. The React + Vite frontend lives in `frontend/`, and Capacitor copies the production build from `frontend/dist/` into native projects.
+
+### Capacitor configuration
+
+| Setting | Value |
+|---|---|
+| Config file | `capacitor.config.ts` (project root) |
+| App name | `Masgarti Payroll` |
+| App ID | `com.masgarti.payroll` |
+| Web directory | `frontend/dist` |
+
+### 1. Install dependencies
+
+```bash
+# Backend
+cd backend
+npm install
+
+# Frontend
+cd ../frontend
+npm install
+
+# Capacitor wrapper (project root)
+cd ..
+npm install
+```
+
+### 2. Build the frontend
 
 ```bash
 cd frontend
 npm run build
-npm install @capacitor/core @capacitor/cli @capacitor/android @capacitor/ios
-npx cap init
-npx cap add android
-npx cap add ios
+```
+
+Or from the project root:
+
+```bash
+npm run build:web
+```
+
+Vite outputs the production build to `frontend/dist/`.
+
+### 3. Sync Capacitor
+
+From the project root:
+
+```bash
 npx cap sync
 ```
 
-Then open Android Studio or Xcode to build APK / iOS app.
+Or build and sync in one step:
+
+```bash
+npm run cap:sync
+```
+
+### 4. Android setup
+
+Native Android project is **not generated yet** in this repository.
+
+Prerequisites on Windows:
+
+- [Android Studio](https://developer.android.com/studio)
+- Android SDK
+- Java 17+
+
+After the frontend build succeeds, add Android once from the project root:
+
+```bash
+npx cap add android
+npx cap sync
+npx cap open android
+```
+
+This is safe to run when the `android/` folder does not already exist. It creates a new native Android project without changing the React or Express code.
+
+Build and run the app from Android Studio.
+
+### 5. iOS setup
+
+Native iOS project is **not generated yet** in this repository.
+
+**iOS builds require macOS with Xcode installed.** You cannot compile or ship an iOS app from Windows alone.
+
+On a Mac, after the frontend build succeeds:
+
+```bash
+npx cap add ios
+npx cap sync
+npx cap open ios
+```
+
+Build and run the app from Xcode.
+
+### 6. Mobile API note
+
+During local web development, Vite proxies `/api` to `http://localhost:5000`. In a native Capacitor build, configure the frontend API base URL to point to your deployed backend or LAN-accessible backend URL before production mobile use.
+
+### 7. Git ignore note
+
+The root `.gitignore` currently ignores:
+
+- `android/`
+- `ios/`
+- `.capacitor/`
+
+That is appropriate if you only want Capacitor configuration in Git and generate native projects locally. If you need the full `android/` or `ios/` project committed to GitHub, remove those entries only after confirming that requirement.
 
 ## Figma Design
 
@@ -147,4 +239,13 @@ Implemented screens:
 - Payroll History
 - Payslip
 - Login
+- Signup
 - Responsive mobile/tablet layouts
+
+## Project Status
+
+The web payroll system is complete for HR use: authentication, employee CRUD, payroll processing, history, payslips (print and PDF), themes, and Capacitor configuration.
+
+Native Android and iOS projects are not generated in this repository. Generate them locally with `npx cap add android` or `npx cap add ios` (iOS requires macOS and Xcode).
+
+A code-review and bug-fix summary is in `CODE_REVIEW_PROGRESS_REPORT.md`.

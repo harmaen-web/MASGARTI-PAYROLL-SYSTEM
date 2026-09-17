@@ -39,6 +39,13 @@ export default function EmployeeForm({ initialValues = {}, onSubmit, onCancel, s
       }
     });
 
+    const basic = Number(form.basic_salary);
+    const allowances = Number(form.allowances);
+    const deductions = Number(form.deductions);
+    if (![basic, allowances, deductions].some(Number.isNaN) && deductions > basic + allowances) {
+      nextErrors.push('Deductions cannot exceed gross salary (basic salary + allowances)');
+    }
+
     setErrors(nextErrors);
     return nextErrors.length === 0;
   };

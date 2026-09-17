@@ -1,6 +1,7 @@
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import Employee from './models/Employee.js';
+import Payroll from './models/Payroll.js';
 
 dotenv.config();
 
@@ -48,6 +49,7 @@ const connectDatabase = async () => {
 const seed = async () => {
   try {
     await connectDatabase();
+    await Payroll.deleteMany({});
     await Employee.deleteMany({});
     await Employee.insertMany(seedEmployees);
     console.log('Seed data inserted successfully');

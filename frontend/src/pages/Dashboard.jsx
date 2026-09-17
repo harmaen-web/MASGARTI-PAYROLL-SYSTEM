@@ -51,7 +51,7 @@ export default function Dashboard() {
     {
       title: 'Pending Payout Run',
       value: stats.pendingCount,
-      subtitle: 'Payroll records awaiting processing',
+      subtitle: 'Employees not yet processed, plus pending payroll records',
       icon: AlertTriangle,
       iconBg: 'bg-amber-100 dark:bg-warning-bg',
       iconColor: 'text-amber-600 dark:text-accent-yellow',

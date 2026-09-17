@@ -20,6 +20,10 @@ export const login = async (req, res) => {
       return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
 
+    if (!process.env.JWT_SECRET) {
+      return res.status(500).json({ success: false, message: 'Server authentication is not configured' });
+    }
+
     const token = jwt.sign(
       { id: admin._id, email: admin.email, name: admin.name, role: admin.role },
       process.env.JWT_SECRET,
@@ -66,6 +70,10 @@ export const register = async (req, res) => {
       password: hashedPassword,
       role: 'Administrator',
     });
+
+    if (!process.env.JWT_SECRET) {
+      return res.status(500).json({ success: false, message: 'Server authentication is not configured' });
+    }
 
     const token = jwt.sign(
       { id: admin._id, email: admin.email, name: admin.name, role: admin.role },

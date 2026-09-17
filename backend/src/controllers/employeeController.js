@@ -1,4 +1,6 @@
 import Employee from '../models/Employee.js';
+import Payroll from '../models/Payroll.js';
+import { escapeRegex, isValidObjectId } from '../utils/helpers.js';
 
 const validateEmployeePayload = (body, isUpdate = false) => {
   const errors = [];
@@ -31,6 +33,22 @@ const validateEmployeePayload = (body, isUpdate = false) => {
     }
   });
 
+  const basic = body.basic_salary !== undefined ? Number(body.basic_salary) : undefined;
+  const allowances = body.allowances !== undefined ? Number(body.allowances) : undefined;
+  const deductions = body.deductions !== undefined ? Number(body.deductions) : undefined;
+
+  if (
+    basic !== undefined &&
+    allowances !== undefined &&
+    deductions !== undefined &&
+    !Number.isNaN(basic) &&
+    !Number.isNaN(allowances) &&
+    !Number.isNaN(deductions) &&
+    deductions > basic + allowances
+  ) {
+    errors.push('Deductions cannot exceed gross salary (basic salary + allowances)');
+  }
+
   return errors;
 };
 
@@ -40,11 +58,12 @@ export const getEmployees = async (req, res) => {
     const filter = {};
 
     if (search) {
+      const term = escapeRegex(search.trim());
       filter.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { employee_id: { $regex: search, $options: 'i' } },
-        { department: { $regex: search, $options: 'i' } },
-        { designation: { $regex: search, $options: 'i' } },
+        { name: { $regex: term, $options: 'i' } },
+        { employee_id: { $regex: term, $options: 'i' } },
+        { department: { $regex: term, $options: 'i' } },
+        { designation: { $regex: term, $options: 'i' } },
       ];
     }
 
@@ -57,9 +76,20 @@ export const getEmployees = async (req, res) => {
     }
 
     if (min_salary || max_salary) {
+      const minValue = min_salary === undefined || min_salary === '' ? undefined : Number(min_salary);
+      const maxValue = max_salary === undefined || max_salary === '' ? undefined : Number(max_salary);
+
+      if ((min_salary && Number.isNaN(minValue)) || (max_salary && Number.isNaN(maxValue))) {
+        return res.status(400).json({ success: false, message: 'Salary filters must be valid numbers' });
+      }
+
+      if (minValue !== undefined && maxValue !== undefined && minValue > maxValue) {
+        return res.status(400).json({ success: false, message: 'Minimum salary cannot be greater than maximum salary' });
+      }
+
       filter.basic_salary = {};
-      if (min_salary) filter.basic_salary.$gte = Number(min_salary);
-      if (max_salary) filter.basic_salary.$lte = Number(max_salary);
+      if (minValue !== undefined) filter.basic_salary.$gte = minValue;
+      if (maxValue !== undefined) filter.basic_salary.$lte = maxValue;
     }
 
     const employees = await Employee.find(filter).sort({ createdAt: -1 });
@@ -71,6 +101,10 @@ export const getEmployees = async (req, res) => {
 
 export const getEmployeeById = async (req, res) => {
   try {
+    if (!isValidObjectId(req.params.id)) {
+      return res.status(400).json({ success: false, message: 'Invalid employee ID' });
+    }
+
     const employee = await Employee.findById(req.params.id);
     if (!employee) {
       return res.status(404).json({ success: false, message: 'Employee not found' });
@@ -114,6 +148,10 @@ export const createEmployee = async (req, res) => {
 
 export const updateEmployee = async (req, res) => {
   try {
+    if (!isValidObjectId(req.params.id)) {
+      return res.status(400).json({ success: false, message: 'Invalid employee ID' });
+    }
+
     const errors = validateEmployeePayload(req.body, true);
     if (errors.length) {
       return res.status(400).json({ success: false, message: 'Validation failed', errors });
@@ -124,20 +162,35 @@ export const updateEmployee = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Employee not found' });
     }
 
-    if (req.body.employee_id && req.body.employee_id !== employee.employee_id) {
-      const duplicate = await Employee.findOne({ employee_id: req.body.employee_id.trim() });
-      if (duplicate) {
-        return res.status(409).json({ success: false, message: 'Employee ID already exists' });
+    const nextBasic = req.body.basic_salary !== undefined ? Number(req.body.basic_salary) : employee.basic_salary;
+    const nextAllowances = req.body.allowances !== undefined ? Number(req.body.allowances) : employee.allowances;
+    const nextDeductions = req.body.deductions !== undefined ? Number(req.body.deductions) : employee.deductions;
+
+    if (nextDeductions > nextBasic + nextAllowances) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: ['Deductions cannot exceed gross salary (basic salary + allowances)'],
+      });
+    }
+
+    if (req.body.employee_id !== undefined) {
+      const nextEmployeeId = String(req.body.employee_id).trim();
+      if (nextEmployeeId && nextEmployeeId !== employee.employee_id) {
+        const duplicate = await Employee.findOne({ employee_id: nextEmployeeId });
+        if (duplicate) {
+          return res.status(409).json({ success: false, message: 'Employee ID already exists' });
+        }
+        employee.employee_id = nextEmployeeId;
       }
-      employee.employee_id = req.body.employee_id.trim();
     }
 
     if (req.body.name !== undefined) employee.name = req.body.name.trim();
     if (req.body.department !== undefined) employee.department = req.body.department.trim();
     if (req.body.designation !== undefined) employee.designation = req.body.designation.trim();
-    if (req.body.basic_salary !== undefined) employee.basic_salary = Number(req.body.basic_salary);
-    if (req.body.allowances !== undefined) employee.allowances = Number(req.body.allowances);
-    if (req.body.deductions !== undefined) employee.deductions = Number(req.body.deductions);
+    if (req.body.basic_salary !== undefined) employee.basic_salary = nextBasic;
+    if (req.body.allowances !== undefined) employee.allowances = nextAllowances;
+    if (req.body.deductions !== undefined) employee.deductions = nextDeductions;
 
     await employee.save();
     res.json({ success: true, message: 'Employee updated successfully', data: employee });
@@ -148,10 +201,18 @@ export const updateEmployee = async (req, res) => {
 
 export const deleteEmployee = async (req, res) => {
   try {
-    const employee = await Employee.findByIdAndDelete(req.params.id);
+    if (!isValidObjectId(req.params.id)) {
+      return res.status(400).json({ success: false, message: 'Invalid employee ID' });
+    }
+
+    const employee = await Employee.findById(req.params.id);
     if (!employee) {
       return res.status(404).json({ success: false, message: 'Employee not found' });
     }
+
+    await Payroll.deleteMany({ employee_id: employee._id });
+    await employee.deleteOne();
+
     res.json({ success: true, message: 'Employee deleted successfully' });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Failed to delete employee', error: error.message });

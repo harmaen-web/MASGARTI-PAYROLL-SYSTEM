@@ -1,14 +1,27 @@
 import mongoose from 'mongoose';
 
-export const mountDbViewer = (app) => {
-  app.get('/db-viewer', async (_req, res) => {
+const redactDocument = (document) => {
+  const copy = { ...document };
+  if (copy.password) copy.password = '[redacted]';
+  return copy;
+};
+
+const escapeHtml = (value) =>
+  String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+
+export const mountDbViewer = (app, authMiddleware) => {
+  app.get('/db-viewer', authMiddleware, async (_req, res) => {
     try {
       const db = mongoose.connection.db;
       const collections = await db.listCollections().toArray();
       const data = {};
 
       for (const collection of collections) {
-        data[collection.name] = await db.collection(collection.name).find({}).toArray();
+        const documents = await db.collection(collection.name).find({}).toArray();
+        data[collection.name] = documents.map(redactDocument);
       }
 
       res.send(`
@@ -28,14 +41,14 @@ export const mountDbViewer = (app) => {
           </head>
           <body>
             <h1>MongoDB Data Viewer</h1>
-            <p class="meta">Database: <strong>${db.databaseName}</strong> | Connection: <strong>mongodb://127.0.0.1:27017/${db.databaseName}</strong></p>
+            <p class="meta">Database: <strong>${escapeHtml(db.databaseName)}</strong></p>
             ${collections
               .map(
                 (collection) => `
                   <div class="card">
-                    <h2>${collection.name}</h2>
+                    <h2>${escapeHtml(collection.name)}</h2>
                     <p class="meta">${data[collection.name].length} document(s)</p>
-                    <pre>${JSON.stringify(data[collection.name], null, 2)}</pre>
+                    <pre>${escapeHtml(JSON.stringify(data[collection.name], null, 2))}</pre>
                   </div>
                 `
               )
@@ -44,7 +57,7 @@ export const mountDbViewer = (app) => {
         </html>
       `);
     } catch (error) {
-      res.status(500).send(`<h1>Failed to load database</h1><pre>${error.message}</pre>`);
+      res.status(500).send(`<h1>Failed to load database</h1><pre>${escapeHtml(error.message)}</pre>`);
     }
   });
 };

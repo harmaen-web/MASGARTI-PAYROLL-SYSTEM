@@ -27,7 +27,7 @@ app.use('/api/employees', authMiddleware, employeeRoutes);
 app.use('/api/payroll', authMiddleware, payrollRoutes);
 
 if (process.env.NODE_ENV !== 'production') {
-  mountDbViewer(app);
+  mountDbViewer(app, authMiddleware);
 }
 
 app.use((_req, res) => {

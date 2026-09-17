@@ -52,7 +52,8 @@ export const api = {
   updateEmployee: (id, payload) =>
     request(`/employees/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
   deleteEmployee: (id) => request(`/employees/${id}`, { method: 'DELETE' }),
-  previewPayroll: (employeeId) => request(`/payroll/preview?employeeId=${employeeId}`),
+  previewPayroll: (employeeId) =>
+    request(`/payroll/preview?employeeId=${encodeURIComponent(employeeId)}`),
   processPayroll: (payload) =>
     request('/payroll/process', { method: 'POST', body: JSON.stringify(payload) }),
   getPayrollHistory: (params = {}) => {

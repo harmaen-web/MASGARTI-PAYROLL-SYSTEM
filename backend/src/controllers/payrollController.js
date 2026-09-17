@@ -1,20 +1,26 @@
 import Employee from '../models/Employee.js';
 import Payroll from '../models/Payroll.js';
-
-const calculatePayroll = (employee) => {
-  const gross_salary = employee.basic_salary + employee.allowances;
-  const net_salary = gross_salary - employee.deductions;
-  return { gross_salary, net_salary };
-};
+import { calculatePayroll, isValidObjectId, PAYROLL_STATUSES } from '../utils/helpers.js';
 
 export const processPayroll = async (req, res) => {
   try {
     const { employeeId, month, status = 'Processed' } = req.body;
 
-    if (!employeeId || !month) {
+    if (!employeeId || !month || !String(month).trim()) {
       return res.status(400).json({
         success: false,
         message: 'Employee and payroll month are required',
+      });
+    }
+
+    if (!isValidObjectId(employeeId)) {
+      return res.status(400).json({ success: false, message: 'Invalid employee ID' });
+    }
+
+    if (!PAYROLL_STATUSES.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Payroll status must be Pending, Processed, or Paid',
       });
     }
 
@@ -23,25 +29,32 @@ export const processPayroll = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Employee not found' });
     }
 
-    const existing = await Payroll.findOne({ employee_id: employeeId, month });
+    const payrollMonth = String(month).trim();
+    const existing = await Payroll.findOne({ employee_id: employeeId, month: payrollMonth });
     if (existing) {
       return res.status(409).json({
         success: false,
-        message: `Payroll for ${employee.name} in ${month} has already been processed`,
+        message: `Payroll for ${employee.name} in ${payrollMonth} has already been processed`,
         data: existing,
       });
     }
 
-    const { gross_salary, net_salary } = calculatePayroll(employee);
+    const calculation = calculatePayroll(employee);
+    if (calculation.net_salary < 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot process payroll because deductions exceed gross salary',
+      });
+    }
 
     const payroll = await Payroll.create({
       employee_id: employeeId,
-      month,
-      basic_salary: employee.basic_salary,
-      allowances: employee.allowances,
-      gross_salary,
-      deductions: employee.deductions,
-      net_salary,
+      month: payrollMonth,
+      basic_salary: calculation.basic_salary,
+      allowances: calculation.allowances,
+      gross_salary: calculation.gross_salary,
+      deductions: calculation.deductions,
+      net_salary: calculation.net_salary,
       status,
       processed_date: new Date(),
     });
@@ -51,13 +64,7 @@ export const processPayroll = async (req, res) => {
       success: true,
       message: 'Payroll processed successfully',
       data: populated,
-      calculation: {
-        basic_salary: employee.basic_salary,
-        allowances: employee.allowances,
-        gross_salary,
-        deductions: employee.deductions,
-        net_salary,
-      },
+      calculation,
     });
   } catch (error) {
     if (error.code === 11000) {
@@ -73,21 +80,25 @@ export const processPayroll = async (req, res) => {
 export const previewPayroll = async (req, res) => {
   try {
     const { employeeId } = req.query;
+    if (!employeeId) {
+      return res.status(400).json({ success: false, message: 'Employee is required' });
+    }
+
+    if (!isValidObjectId(employeeId)) {
+      return res.status(400).json({ success: false, message: 'Invalid employee ID' });
+    }
+
     const employee = await Employee.findById(employeeId);
     if (!employee) {
       return res.status(404).json({ success: false, message: 'Employee not found' });
     }
 
-    const { gross_salary, net_salary } = calculatePayroll(employee);
+    const calculation = calculatePayroll(employee);
     res.json({
       success: true,
       data: {
         employee,
-        basic_salary: employee.basic_salary,
-        allowances: employee.allowances,
-        gross_salary,
-        deductions: employee.deductions,
-        net_salary,
+        ...calculation,
       },
     });
   } catch (error) {
@@ -101,21 +112,25 @@ export const getPayrollHistory = async (req, res) => {
     const filter = {};
 
     if (month) filter.month = month;
-    if (status && status !== 'All') filter.status = status;
+    if (status && status !== 'All') {
+      if (!PAYROLL_STATUSES.includes(status)) {
+        return res.status(400).json({ success: false, message: 'Invalid payroll status filter' });
+      }
+      filter.status = status;
+    }
 
     let payrolls = await Payroll.find(filter)
       .populate('employee_id')
       .sort({ processed_date: -1 });
 
     if (search) {
-      const term = search.toLowerCase();
+      const term = search.toLowerCase().trim();
       payrolls = payrolls.filter((record) => {
         const employee = record.employee_id;
         if (!employee) return false;
-        return (
-          employee.name.toLowerCase().includes(term) ||
-          employee.employee_id.toLowerCase().includes(term)
-        );
+        const name = String(employee.name || '').toLowerCase();
+        const employeeCode = String(employee.employee_id || '').toLowerCase();
+        return name.includes(term) || employeeCode.includes(term);
       });
     }
 
@@ -127,6 +142,10 @@ export const getPayrollHistory = async (req, res) => {
 
 export const getPayrollById = async (req, res) => {
   try {
+    if (!isValidObjectId(req.params.id)) {
+      return res.status(400).json({ success: false, message: 'Invalid payroll ID' });
+    }
+
     const payroll = await Payroll.findById(req.params.id).populate('employee_id');
     if (!payroll) {
       return res.status(404).json({ success: false, message: 'Payroll record not found' });

@@ -20,7 +20,7 @@ const seedAdmin = async () => {
   try {
     await connectDatabase();
 
-    const email = process.env.ADMIN_EMAIL || 'admin@masgarti.com';
+    const email = (process.env.ADMIN_EMAIL || 'admin@masgarti.com').toLowerCase().trim();
     const password = process.env.ADMIN_PASSWORD || 'admin123';
     const name = process.env.ADMIN_NAME || 'HR Administrator';
 

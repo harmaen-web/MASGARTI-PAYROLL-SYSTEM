@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { api, setAuthToken } from '../services/api';
 
 const AuthContext = createContext(null);
@@ -25,33 +25,33 @@ export function AuthProvider({ children }) {
       .finally(() => setLoading(false));
   }, []);
 
-  const setSession = (response) => {
+  const setSession = useCallback((response) => {
     localStorage.setItem('masgarti_token', response.token);
     setAuthToken(response.token);
     setUser(response.user);
-  };
+  }, []);
 
-  const login = async (credentials) => {
+  const login = useCallback(async (credentials) => {
     const response = await api.login(credentials);
     setSession(response);
     return response;
-  };
+  }, [setSession]);
 
-  const register = async (payload) => {
+  const register = useCallback(async (payload) => {
     const response = await api.register(payload);
     setSession(response);
     return response;
-  };
+  }, [setSession]);
 
-  const logout = () => {
+  const logout = useCallback(() => {
     localStorage.removeItem('masgarti_token');
     setAuthToken(null);
     setUser(null);
-  };
+  }, []);
 
   const value = useMemo(
     () => ({ user, loading, login, register, logout, isAuthenticated: Boolean(user) }),
-    [user, loading]
+    [user, loading, login, register, logout]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

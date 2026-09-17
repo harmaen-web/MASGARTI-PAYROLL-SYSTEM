@@ -41,6 +41,7 @@ export default function PayrollProcessing() {
     try {
       const response = await api.previewPayroll(employeeId);
       setPreview(response.data);
+      setError('');
     } catch (err) {
       setPreview(null);
       setError(err.message);
